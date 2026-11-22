@@ -1,21 +1,126 @@
-当前源码为0.3.0修复候选；仅完成电脑检查，实际设备尚未验收。直接使用原版存档（修改前备份），内置冷启动及面板免责声明。见[当前安装说明](../../docs/INSTALL-v0.3.0.md)。
+# Phigros LSPosed 模块
 
-# Phigros 4.0.1（157）ARM64 LSPosed 模块
+**最新预发行：[v0.8.0](https://github.com/yskzctx/phigros-lsposed/releases/tag/v0.8.0-pre.1)**
 
-源代码包括宿主适配、复用的控制/皮肤/章节 Java、原生控制与皮肤源码。不是改包名共存版；只作用于 `com.PigeonGames.Phigros`。
+> **未经过真机 LSPosed 验收。** 电脑端能验证编译、签名、原生库齐全、dex、manifest 声明和回归测试；不能替代真实 LSPosed 环境下的注入与整局游玩。
 
-0.3.0新增随机K、自动游玩时屏蔽真实触摸、S/FC/AT保护与额外保护分数；显式判定规则优先。原生章节扩展特效、音效和判定线颜色未完成；自制章节与宿主两处皮肤存储独立。本轮尚未真机验收。
+运行时附加，**不修改游戏 APK、不改签名、不重打包**。保留宿主登录、联网和原版上传流程，不绕过服务器、账号、购买或反作弊校验。
+
+| 产物 | 目标 |
+|---|---|
+| `Phigros-Lab-LSPosed-157-161-arm64-v0.8.0-TEST.apk` | 4.0.1(157) **或** 4.1.0(161) arm64 |
+
+覆盖安装后强停目标游戏再打开。
+
+---
+
+## 支持 4.1.0
+
+按**函数序言匹配**自动选钩子表，不按版本号猜：
+
+- 遍历候选表（157 用 `native/core/expected-hooks.h`，4.1.0 用 `native/core/expected-hooks-161.h`）
+- 选第一张 9 个函数序言全部匹配当前 `libil2cpp.so` 的表
+- 157 表不匹配时自动落到 4.1.0 表
+- `bad_call` 随表走（157 `0x1d875c4` / 4.1.0 `0x1d89dcc`）
+
+`GameProfile` 接受 157 和 161，各自校验 libil2cpp 的 sha256。
+
+---
+
+## 功能
+
+### 判定保护（不改输入）
+
+面板「这局怎么打」有两个保护选项：
+
+| 选项 | 行为 |
+|---|---|
+| **判定保护** | **完全不碰输入**。你自己打，判定产生后 Good/Bad/Miss 强制改成 Perfect |
+| 自动补全 | 替你按键，全 Perfect（旧行为） |
+
+保护类型（判定保护下生效）：
+
+| 类型 | 效果 |
+|---|---|
+| 保护 AP | 任何非 Perfect 都改成 Perfect |
+| 保护 FC | 只有 Bad / Miss 改成 Perfect，Good 保留 |
+| 保护分数 | 只在当前分数低于保底时改判 |
+
+**不需要开自动游玩。**
+
+### 结算页强制显示
+
+- 8 个独立字段：分数、准确率、P/G/B/M、最大连击
+- 结算符号：不干预 / Φ（全 Perfect）/ FC（无 Bad、Miss）
+- Good 早/晚：可选开关
+- 独立开关，接受真实一局不可能出现的组合
+
+### 全解锁 / 全部 AP / 目标 RKS
+
+- 曲库 **1072 谱面 / 329 首**（4.1.0 数据）
+- 「全解锁 ＋ 全部 AP」：解锁全部曲目、收藏品、曲绘、头像并设置全 AP
+- 补全逻辑：随包数据是 157 快照（1037 谱面记录、646 个歌曲解锁标志），缺的部分自动补齐
+- 目标历史 RKS：四位小数，上限 17.32（= 全 AP）
+
+### 导入 / 导出存档
+
+- 导入游戏原始 `playerprefs.xml` 或面板导出的 ZIP
+- 先检查（来源、条目数、大小）→ 确认 → 自动备份 → 写入
+- 备份列表一键回退；恢复限制在备份目录内
+- 不解密不重加密，账号身份完整保留
+- 导入后需完全退出重启
+
+### 我的自制章节 / 音符皮肤 / 初始 Data
+
+- 自制章节：导入带音乐和插画的 `.pez` / ZIP 谱包
+- 音符皮肤：标准 Phira 音符图包（图片上限 8192 边长 / 3200 万像素）
+- 初始 Data：准备至少 10000 MB 本地 Data
+
+---
+
+## 边界：绝不隐藏或阻止登录
+
+登录隐藏只属于离线修改版（它本来不联网）。模块运行在原版游戏里，登录、账号、云同步必须正常。
+
+`tools/check_module_no_login_block.py` 强制检查：源码无隐私符号、产物无 `libphigros_privacy.so`、原生库不导出相关符号。
+
+---
 
 ## 构建
 
-需要 JDK 17+、Python 3.11+、Android SDK platform 36 / build-tools 36.0.0、NDK 26.3.11579264，以及官方 [Xposed API 82](https://api.xposed.info/de/robv/android/xposed/api/82/api-82.jar) 编译依赖，不打包 Xposed API 定义。
-
-```text
-python build_module.py --sdk <SDK目录> --ndk <NDK目录> --xposed-api <api-82.jar> --keystore <自有签名库> --alias <别名> --password-file <本地密码文件> --resources-from-apk <已核对174、175或177修改版APK> --out <输出目录>
+```bash
+python build_module.py \
+    --sdk <Android SDK> --ndk <NDK> --xposed-api <api-82.jar> \
+    --keystore <jks> --alias <alias> --password-file <txt> \
+    --resources-from-apk <离线修改版 APK> \
+    --chapter-so <libphigros_chapter.so> \
+    --out <输出目录>
 ```
 
-脚本校验资源输入 APK 的完整 SHA-256，从已核对174、175或177修改版读取默认播放器资源及现有后端。不会将官方 Unity 引擎或 Phigros 游戏资源复制进模块，不接受原版游戏、其他 APK 或私人构建作为这个输入。默认字体/资源包等资产沿用上游许可，资源输入不含签名私钥。
+`--resources-from-apk` 按**内容**校验（包名、`assets/offline/`、无 INTERNET），不是哈希白名单。
 
-脚本重新编译本仓库的 Java、原生控制适配和音符皮肤库。自制谱后端可按 [对应源码说明](../../chapter-player/README.md) 自行编译，然后用 `--chapter-so <libphira.so>` 替换默认后端输入。该后端只在模块的自制谱子进程运行。
+### 原生库
 
-签名库与密码文件必须由构建者在仓库外提供；仓库不包含发布者私钥。输出检查签名、16KB 对齐和 APK CRC；这些仍不是手机验收。
+模块必须自带它加载的每个库，缺任一启动即崩：
+
+- `libphigros_lsp.so` — 判定/结算 hook
+- `libphigros_skins.so` — 皮肤渲染
+- `libphigros_chapter.so` — 自制章节引擎（Rust 构建，见 `chapter-player/`）
+
+---
+
+## 已知限制
+
+- **4.1.0 皮肤渲染不可用**：12 个 Unity 辅助 RVA 已恢复 7 个，5 个未解。已做安全降级——库能加载、不装错 hook、不崩，但功能不可用。判定保护、结算、成绩、曲库不受影响。
+- 未真机验收。
+
+---
+
+## 相关仓库
+
+- [Phira 模块](https://github.com/yskzctx/phira-lsposed)
+- [Phigros 离线修改版](https://github.com/yskzctx/phigros-offline-lab)
+
+## 免责声明
+
+见 [DISCLAIMER.md](DISCLAIMER.md)。

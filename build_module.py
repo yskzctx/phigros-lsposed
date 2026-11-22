@@ -69,7 +69,7 @@ with zipfile.ZipFile(resources)as res,zipfile.ZipFile(a.resources_from_apk)as ol
  elif 'lib/arm64-v8a/libphigros_chapter.so' in old.namelist():
   chapter=old.read('lib/arm64-v8a/libphigros_chapter.so');chapter_source='resource APK'
  else:
-  cached=root.parent.parent/'build-cache'/'libphigros_chapter.so'
+  cached=root/'chapter-player'/'build'/'libphigros_chapter.so'
   if cached.is_file():chapter=cached.read_bytes();chapter_source=str(cached)
  if chapter:
   assert chapter[:5]==b'\x7fELF\x02'and struct.unpack_from('<H',chapter,18)[0]==183,'chapter library is not an aarch64 ELF'
