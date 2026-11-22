@@ -6,7 +6,7 @@
 // offsets recovered for the 4.1.0 build; the entry point below picks whichever table's
 // prologues all match the loaded libil2cpp.so, so one module serves both versions.
 #include "core/expected-hooks-161.h"
-#include "../../common/hook-batch.h"
+#include "../common/hook-batch.h"
 #include "attachment-order.h"
 #include <dlfcn.h>
 
