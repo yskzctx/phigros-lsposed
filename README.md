@@ -1,6 +1,6 @@
 # Phigros LSPosed 模块
 
-**最新预发行：[v0.8.4](https://github.com/yskzctx/phigros-lsposed/releases/tag/v0.8.4-pre.1)**
+**最新正式版：[v0.8.4](https://github.com/yskzctx/phigros-lsposed/releases/tag/v0.8.4)**
 
 > **未经过真机 LSPosed 验收。** 电脑端能验证编译、签名、原生库齐全、dex、manifest 声明和回归测试；不能替代真实 LSPosed 环境下的注入与整局游玩。
 
