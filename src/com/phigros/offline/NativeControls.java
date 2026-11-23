@@ -63,11 +63,31 @@ public final class NativeControls {
         if(LaunchActivity.isNativeLoaded() && !configure(c.mode,c.target,c.accuracy,block,guardForMode(c.mode,guard),score,c.packed))
             throw new IllegalArgumentException("原生控制拒绝此配置");
     }
+    /**
+     * 自动游玩是总开关：只有自动游玩开启时，才把保存的目标模式（AP/分数/准确率/保护）推给原生层；
+     * 关闭时一律推手动模式（MODE_AP），保证判定保护在手动局里绝不生效。
+     *
+     * 之前 changeAutoplay/save 无条件 apply(已保存模式)，而原生 promoting() 又刻意不检查自动开关，
+     * 结果「关闭自动游玩」后判定保护仍在改判。这个入口把总开关语义收敛到一处。
+     */
+    public static void applyActive(ControlsConfig c,boolean block,int guard,int score) {
+        if(guard<0||guard>3||score<0||score>1000000)throw new IllegalArgumentException("成绩保护参数无效");
+        // 自动游玩（enabled）= 注入全 Perfect。它只应控制「注入型」模式：
+        // 自动AP / 目标分数 / 目标准确率。判定保护（mode 3/4）是被动事后改判，
+        // 不注入，因此无论开关都按所选模式生效；这里把注入显式关掉以免变 AP。
+        boolean toggle=LaunchActivity.isAutoplay();
+        boolean inject=toggle&&(c.mode==ControlsConfig.MODE_AP||c.mode==ControlsConfig.MODE_SCORE||c.mode==ControlsConfig.MODE_ACCURACY);
+        int g=(c.mode==ControlsConfig.MODE_GUARD||c.mode==ControlsConfig.MODE_PROMOTE)?guard:0;
+        if(!LaunchActivity.isNativeLoaded())return;
+        LaunchActivity.setNativeAutoplay(inject);
+        if(!configure(c.mode,c.target,c.accuracy,block,guardForMode(c.mode,g),score,c.packed))
+            throw new IllegalArgumentException("原生控制拒绝此配置");
+    }
     public static void save(Context context,ControlsConfig c){
         save(context,c,blockTouch(context),c.guardKind,c.guardScore);
     }
     public static void save(Context context,ControlsConfig c,boolean block,int guard,int score){
-        apply(c,block,guard,score);
+        applyActive(c,block,guard,score);
         if(!preferences(context).edit().putInt("goal_mode",c.mode).putString("score",Integer.toString(c.target)).putString("accuracy",new java.math.BigDecimal(c.accuracy).divide(new java.math.BigDecimal(100)).toPlainString()).putString("rules",c.encodedRules).putBoolean("block_touch",block).putInt("assist_guard",guard).putInt("guard_score",score).commit())throw new IllegalStateException("配置保存失败");
     }
     public static int[] getStatus() {return LaunchActivity.isNativeLoaded()?status():new int[21];}

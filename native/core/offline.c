@@ -211,7 +211,8 @@ static void promote_judgment(void *score,int judgment) {
     if(from&&*from>0)(*from)--;
     // Where the rescued note lands: protect-score turns Bad/Miss into Good (it is protecting a
     // floor, not granting full marks); the other kinds promote to Perfect.
-    int target=chart_config.assist_guard==3?0x5c:0x58;
+    // 保护AP(1)->Perfect；保护FC(2)/保护分数(3)->Good（FC 漏键救成 Good 保连击，不升 Perfect）。
+    int target=(chart_config.assist_guard==1)?0x58:0x5c;
     int *to=integer(score,target);
     if(to)(*to)++;
     atomic_fetch_add(&promote_count,1);

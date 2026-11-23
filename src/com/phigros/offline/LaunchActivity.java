@@ -4,6 +4,7 @@ import android.content.Context;import java.io.*;import com.phigros.lab.LabNative
 public final class LaunchActivity {
  private static boolean chosen,autoplay;
  private static native void setAutoplay(boolean value);
+ static void setNativeAutoplay(boolean value){setAutoplay(value);}
  public static boolean isNativeLoaded(){return LabNative.ready();}
  public static boolean isSessionChosen(){return chosen;}
  public static boolean isAutoplay(){return autoplay;}
@@ -27,11 +28,11 @@ public final class LaunchActivity {
    try(InputStream in=new FileInputStream(prefs(c))){copyAtomic(in,new File(state,"playerprefs.xml"));}
    try(FileOutputStream out=new FileOutputStream(pending)){out.write(1);out.getFD().sync();}
   }
-  NativeControls.apply(NativeControls.load(c),NativeControls.blockTouch(c),NativeControls.assistGuard(c),NativeControls.guardScore(c));
+  autoplay=value;NativeControls.applyActive(NativeControls.load(c),NativeControls.blockTouch(c),NativeControls.assistGuard(c),NativeControls.guardScore(c));
   // Forced-result display is independent of autoplay, so it is pushed on every
   // session start rather than only when autoplay turns on.
   ForcedResult.initialize(c);
-  setAutoplay(value);autoplay=value;
+  // native enabled 由 applyActive 按模式决定（注入型才开），此处不覆盖
  }
  public static void beginManualSession(Context c)throws IOException{changeAutoplay(c,false);chosen=true;}
  public static void setGuestAutoplay(boolean value){autoplay=value;chosen=true;}
